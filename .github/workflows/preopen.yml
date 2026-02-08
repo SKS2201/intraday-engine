@@ -1,0 +1,46 @@
+name: Preopen Watchlist
+
+on:
+  schedule:
+    - cron: "40 3 * * 1-5"
+  workflow_dispatch:
+
+jobs:
+  run-preopen:
+    runs-on: ubuntu-latest
+    env:
+      TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
+      TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
+      DATA_PROVIDER: SHOONYA
+      SHOONYA_USER_ID: ${{ secrets.SHOONYA_USER_ID }}
+      SHOONYA_PASSWORD: ${{ secrets.SHOONYA_PASSWORD }}
+      SHOONYA_TOTP_SECRET: ${{ secrets.SHOONYA_TOTP_SECRET }}
+      SHOONYA_VENDOR_CODE: ${{ secrets.SHOONYA_VENDOR_CODE }}
+      SHOONYA_API_SECRET: ${{ secrets.SHOONYA_API_SECRET }}
+      SHOONYA_IMEI: ${{ secrets.SHOONYA_IMEI }}
+      SHOONYA_SESSION_TOKEN: ${{ secrets.SHOONYA_SESSION_TOKEN }}
+      ENABLE_NSE_BACKUP: "true"
+      ENABLE_CROSS_VALIDATION: "true"
+      PRICE_DIFF_TOLERANCE_PCT: "0.35"
+      VOLUME_DIFF_TOLERANCE_PCT: "10.0"
+      NSE_FALLBACK_INTERVALS: "1m,5m,15m"
+      ADMIN_STATUS_NOTIFICATIONS: "true"
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+      - name: Install dependencies
+        run: pip install -r requirements.txt
+      - name: Run stage preopen
+        run: |
+          mkdir -p runtime_logs
+          echo "{\"job\":\"preopen\",\"started_at\":\"$(date -u +%Y-%m-%dT%H:%M:%SZ)\"}" > runtime_logs/heartbeat_preopen.json
+          python -m src.engine.runner --stage preopen > runtime_logs/preopen.log 2>&1
+          echo "{\"job\":\"preopen\",\"finished_at\":\"$(date -u +%Y-%m-%dT%H:%M:%SZ)\",\"status\":\"ok\"}" >> runtime_logs/heartbeat_preopen.json
+      - name: Upload runtime logs
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: preopen-runtime-logs
+          path: runtime_logs/
