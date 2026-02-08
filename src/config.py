@@ -78,6 +78,7 @@ def _to_bool(value: str, default: bool = False) -> bool:
 class Settings:
     telegram_bot_token: str
     telegram_chat_id: str
+    telegram_message_prefix: str
     telegram_parse_mode: str
     telegram_enable_rich_format: bool
     telegram_max_chars: int
@@ -140,6 +141,7 @@ def load_settings() -> Settings:
     return Settings(
         telegram_bot_token=os.getenv("TELEGRAM_BOT_TOKEN", ""),
         telegram_chat_id=os.getenv("TELEGRAM_CHAT_ID", ""),
+        telegram_message_prefix=os.getenv("TELEGRAM_MESSAGE_PREFIX", "").strip(),
         telegram_parse_mode=os.getenv("TELEGRAM_PARSE_MODE", "HTML"),
         telegram_enable_rich_format=_to_bool(os.getenv("TELEGRAM_ENABLE_RICH_FORMAT"), True),
         telegram_max_chars=int(os.getenv("TELEGRAM_MAX_CHARS", "3900")),

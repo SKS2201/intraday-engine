@@ -11,6 +11,7 @@ def _settings() -> Settings:
     return Settings(
         telegram_bot_token="x",
         telegram_chat_id="y",
+        telegram_message_prefix="",
         telegram_parse_mode="HTML",
         telegram_enable_rich_format=True,
         telegram_max_chars=3900,
@@ -185,3 +186,39 @@ def test_runner_test_mode_defaults_to_no_send(mocker):
     rc = runner.main()
     assert rc == 0
     assert send_chunked.called
+
+
+def test_runner_applies_telegram_message_prefix(mocker):
+    dual = DummyDual()
+    settings = replace(_settings(), telegram_message_prefix="[STAGING]")
+    mocker.patch("src.engine.runner.load_settings", return_value=settings)
+    mocker.patch("src.engine.runner.ShoonyaProvider", return_value=object())
+    mocker.patch("src.engine.runner.NseWebProvider", return_value=object())
+    mocker.patch("src.engine.runner.DualSourceProvider", return_value=dual)
+    mocker.patch("src.engine.runner.run_stage1_report", return_value=_report())
+    mocker.patch("src.engine.runner.write_stage1_report_xlsx", return_value="data/reports/stage1_test.xlsx")
+    send_chunked = mocker.patch("src.engine.runner.TelegramNotifier.send_chunked", return_value=None)
+    mocker.patch("src.engine.runner.TelegramNotifier.send_document", return_value=None)
+    mocker.patch(
+        "src.engine.runner.parse_args",
+        return_value=type(
+            "Args",
+            (),
+            {
+                "stage": "openingrange",
+                "dry_run": True,
+                "source_auto": False,
+                "source_force": "nse",
+                "skip_validation": False,
+                "test_mode": False,
+                "replay_date": None,
+                "test_send": False,
+                "show_process": False,
+            },
+        )(),
+    )
+    rc = runner.main()
+    assert rc == 0
+    assert send_chunked.called
+    sent_text = send_chunked.call_args.args[0]
+    assert sent_text.startswith("[STAGING]\n")

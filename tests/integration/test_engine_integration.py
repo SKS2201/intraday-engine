@@ -111,6 +111,7 @@ def _settings() -> Settings:
     return Settings(
         telegram_bot_token="x",
         telegram_chat_id="y",
+        telegram_message_prefix="",
         telegram_parse_mode="HTML",
         telegram_enable_rich_format=True,
         telegram_max_chars=3900,

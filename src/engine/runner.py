@@ -48,6 +48,13 @@ def _parse_stage_time(now_ist: datetime, hhmm: str) -> datetime:
     return datetime.fromisoformat(f"{date_prefix}T{hhmm}:00+05:30")
 
 
+def _with_prefix(text: str, prefix: str) -> str:
+    p = (prefix or "").strip()
+    if not p:
+        return text
+    return f"{p}\n{text}"
+
+
 def main() -> int:
     args = parse_args()
     settings = load_settings()
@@ -116,7 +123,10 @@ def main() -> int:
     try:
         if settings.admin_status_notifications:
             notifier.send(
-                f"Job started: stage={args.stage} source_force={args.source_force or 'auto'} at {now_ist.strftime('%Y-%m-%d %H:%M:%S %Z')}",
+                _with_prefix(
+                    f"Job started: stage={args.stage} source_force={args.source_force or 'auto'} at {now_ist.strftime('%Y-%m-%d %H:%M:%S %Z')}",
+                    settings.telegram_message_prefix,
+                ),
                 dry_run=dry_run,
                 parse_mode=settings.telegram_parse_mode,
             )
@@ -134,6 +144,7 @@ def main() -> int:
             )
             if test_mode and not msg0.startswith("TEST MODE: ON"):
                 msg0 = "[TEST MODE]\n" + msg0
+            msg0 = _with_prefix(msg0, settings.telegram_message_prefix)
             notifier.send_chunked(
                 msg0,
                 max_chars=settings.telegram_max_chars,
@@ -156,6 +167,7 @@ def main() -> int:
             msg1 = report.message_text
             if test_mode and not msg1.startswith("TEST MODE: ON") and not msg1.startswith("[TEST MODE]"):
                 msg1 = "[TEST MODE]\n" + msg1
+            msg1 = _with_prefix(msg1, settings.telegram_message_prefix)
             report_path = write_stage1_report_xlsx(report, settings.reports_dir, stage1_now)
             msg1 = msg1 + f"\n\nWorkbook attached: {report.workbook_name}"
             notifier.send_chunked(
@@ -166,12 +178,17 @@ def main() -> int:
             )
             if settings.telegram_attach_xlsx:
                 caption = "[TEST MODE] Stage-1 audit workbook" if test_mode else "Stage-1 audit workbook"
+                if settings.telegram_message_prefix:
+                    caption = f"{settings.telegram_message_prefix} {caption}".strip()
                 notifier.send_document(report_path, caption=caption, dry_run=dry_run)
     except Exception as exc:
         if settings.admin_status_notifications:
             try:
                 notifier.send(
-                    f"Job failed: stage={args.stage} source_force={args.source_force or 'auto'} error={exc}",
+                    _with_prefix(
+                        f"Job failed: stage={args.stage} source_force={args.source_force or 'auto'} error={exc}",
+                        settings.telegram_message_prefix,
+                    ),
                     dry_run=dry_run,
                     parse_mode=settings.telegram_parse_mode,
                 )

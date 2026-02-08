@@ -85,6 +85,7 @@ Key controls:
 - `TEST_TIME_PREOPEN=09:10`
 - `TEST_TIME_OPENINGRANGE=09:30`
 - `TELEGRAM_PARSE_MODE=HTML`
+- `TELEGRAM_MESSAGE_PREFIX=`
 - `TELEGRAM_ENABLE_RICH_FORMAT=true`
 - `TELEGRAM_MAX_CHARS=3900`
 - `TELEGRAM_ATTACH_XLSX=true`
@@ -132,6 +133,9 @@ Caveat:
 Workflows:
 - `.github/workflows/preopen.yml`
 - `.github/workflows/openingrange.yml`
+- `.github/workflows/ci.yml`
+- `.github/workflows/staging-validate.yml`
+- `.github/workflows/promote-to-main.yml`
 
 Cron mapping:
 - `09:10 IST` -> `03:40 UTC` (`preopen.yml`)
@@ -141,6 +145,42 @@ Required GitHub repository secrets:
 - `TELEGRAM_BOT_TOKEN`
 - `TELEGRAM_CHAT_ID`
 - Optional Shoonya secrets (`SHOONYA_*`)
+
+### Branch Model and Promotion
+- `develop`: integration branch
+- `staging`: pre-production validation branch
+- `main`: production branch
+
+Automatic promotion path:
+1. push/merge to `develop`
+2. merge `develop` -> `staging`
+3. `staging-validate.yml` runs tests + staging preopen/openingrange
+4. on success, `promote-to-main.yml` creates/updates PR `staging -> main` and enables auto-merge
+5. production schedules continue from `main`
+
+### GitHub Environments
+Create two environments in repo settings:
+- `staging`
+- `production`
+
+Secrets for `staging` environment:
+- `TELEGRAM_BOT_TOKEN_STAGING`
+- `TELEGRAM_CHAT_ID_STAGING`
+- `SHOONYA_*` (use placeholder `NA` until Shoonya is live)
+
+Secrets for `production` environment:
+- `TELEGRAM_BOT_TOKEN`
+- `TELEGRAM_CHAT_ID`
+- `SHOONYA_*` (use placeholder `NA` until Shoonya is live)
+
+Staging messages are prefixed with `[STAGING]` via `TELEGRAM_MESSAGE_PREFIX`.
+
+### Branch Protection (Recommended)
+- `main`:
+  - require pull request before merge
+  - require status check `CI / tests`
+- `staging`:
+  - require status check `CI / tests`
 
 Properties:
 - `workflow_dispatch` enabled for manual recovery runs
