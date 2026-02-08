@@ -5,6 +5,7 @@ on:
     workflows: ["Staging Validate"]
     types: [completed]
     branches: [staging]
+  workflow_dispatch:
 
 permissions:
   contents: write
@@ -12,7 +13,7 @@ permissions:
 
 jobs:
   promote:
-    if: github.event.workflow_run.conclusion == 'success'
+    if: github.event_name == 'workflow_dispatch' || github.event.workflow_run.conclusion == 'success'
     runs-on: ubuntu-latest
     steps:
       - name: Create or find promotion PR and enable auto-merge
