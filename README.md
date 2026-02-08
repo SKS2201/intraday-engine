@@ -207,3 +207,4 @@ pytest -q
   - rerun with explicit source override for manual check
 - NSE instability:
   - backup may use 5m/15m fallback and lower confidence
+
